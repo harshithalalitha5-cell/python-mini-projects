@@ -141,25 +141,39 @@ def run_ascii():
 # 3. MAGIC SQUARE GENERATOR
 # =====================================================
 
-def magic_square():
-    n = int(input("Enter odd n: "))
-    if n % 2 == 0:
-        print("Only odd n allowed")
-        return
+def generate_magic_square(n):
+    if n % 2 == 0 or n < 3:
+        raise ValueError("Order must be an odd integer >= 3")
 
-    square = [[0]*n for _ in range(n)]
+    magic = [[0] * n for _ in range(n)]
+
     i, j = 0, n // 2
 
-    for num in range(1, n*n + 1):
-        square[i][j] = num
-        ni, nj = (i-1) % n, (j+1) % n
-        if square[ni][nj]:
-            i = (i+1) % n
-        else:
-            i, j = ni, nj
+    for num in range(1, n * n + 1):
+        magic[i][j] = num
+        old_i, old_j = i, j
+        i = (i - 1) % n
+        j = (j + 1) % n
+        if magic[i][j] != 0:
+            i = (old_i + 1) % n
+            j = old_j
+
+    return magic
+
+
+def print_magic_square(square):
+    n = len(square)
+    magic_constant = n * (n * n + 1) // 2
+    print("Magic Square of order ",n," Magic Sum =",magic_constant,end='\n')
 
     for row in square:
-        print(row)
+        for val in row:
+            print(f"{val:4}", end="")
+        print()
+
+n = int(input("Enter an odd number (>=3) for magic square order: "))
+magic_square = generate_magic_square(n)
+print_magic_square(magic_square)
 
 # =====================================================
 # 4. SUDOKU GENERATOR
@@ -253,3 +267,4 @@ while True:
     else:
         print("Invalid choice")
         
+
