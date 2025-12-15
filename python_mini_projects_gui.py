@@ -141,6 +141,8 @@ def run_ascii():
 # 3. MAGIC SQUARE GENERATOR
 # =====================================================
 
+import wx
+
 def generate_magic_square(n):
     if n % 2 == 0 or n < 3:
         raise ValueError("Order must be an odd integer >= 3")
@@ -160,20 +162,68 @@ def generate_magic_square(n):
 
     return magic
 
+class MagicSquareFrame(wx.Frame):
+    def __init__(self):
+        super().__init__(None, title="Magic Square Generator", size=(400,400))
+        panel = wx.Panel(self)
 
-def print_magic_square(square):
-    n = len(square)
-    magic_constant = n * (n * n + 1) // 2
-    print("Magic Square of order ",n," Magic Sum =",magic_constant,end='\n')
+        vbox = wx.BoxSizer(wx.VERTICAL)
 
-    for row in square:
-        for val in row:
-            print(f"{val:4}", end="")
-        print()
+        title = wx.StaticText(panel, label="Magic Square Generator")
+        title.SetFont(wx.Font(14, wx.FONTFAMILY_DEFAULT,
+                              wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
+        vbox.Add(title, flag=wx.ALIGN_CENTER | wx.TOP, border=15)
 
-n = int(input("Enter an odd number (>=3) for magic square order: "))
-magic_square = generate_magic_square(n)
-print_magic_square(magic_square)
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        hbox.Add(wx.StaticText(panel, label="Enter Order (odd ≥ 3): "),
+                 flag=wx.ALIGN_CENTER_VERTICAL)
+
+        self.input_n = wx.TextCtrl(panel, size=(80, -1))
+        hbox.Add(self.input_n, flag=wx.LEFT, border=10)
+
+        vbox.Add(hbox, flag=wx.ALIGN_CENTER | wx.TOP, border=20)
+
+        btn = wx.Button(panel, label="Generate Magic Square")
+        btn.Bind(wx.EVT_BUTTON, self.on_generate)
+        vbox.Add(btn, flag=wx.ALIGN_CENTER | wx.TOP, border=15)
+
+        self.output = wx.TextCtrl(
+            panel, style=wx.TE_MULTILINE | wx.TE_READONLY
+        )
+        vbox.Add(self.output, proportion=1,
+                 flag=wx.EXPAND | wx.ALL, border=15)
+
+        panel.SetSizer(vbox)
+
+    def on_generate(self, event):
+        self.output.Clear()
+        try:
+            n = int(self.input_n.GetValue())
+            square = generate_magic_square(n)
+            magic_constant = n * (n * n + 1) // 2
+
+            self.output.AppendText(
+                f"Magic Square of Order {n}\n"
+                f"Magic Sum = {magic_constant}\n\n"
+            )
+
+            for row in square:
+                for val in row:
+                    self.output.AppendText(f"{val:4}")
+                self.output.AppendText("\n")
+
+        except ValueError as e:
+            wx.MessageBox(str(e), "Error", wx.ICON_ERROR)
+
+class MagicSquareApp(wx.App):
+    def OnInit(self):
+        frame = MagicSquareFrame()
+        frame.Show()
+        return True
+
+if __name__ == "__main__":
+    app = MagicSquareApp()
+    app.MainLoop()
 
 # =====================================================
 # 4. SUDOKU GENERATOR
@@ -267,4 +317,5 @@ while True:
     else:
         print("Invalid choice")
         
+
 
