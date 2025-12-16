@@ -91,51 +91,129 @@ def run_prime():
 
 ASCII_CHARS = "@%#*+=-:. "
 
-def image_to_ascii(image, new_width=120):
-    w, h = image.size
-    new_height = int((h / w) * new_width * 0.55)
-    image = image.resize((new_width, new_height)).convert("L")
+def image_to_ascii(image, new_width=100):
+    width, height = image.size
+    aspect_ratio = height / width
+    new_height = int(aspect_ratio * new_width * 0.55)
+
+    image = image.resize((new_width, new_height))
+    image = image.convert("L")
+
     pixels = image.getdata()
     chars = "".join(ASCII_CHARS[p * len(ASCII_CHARS) // 256] for p in pixels)
-    return "\n".join(chars[i:i + new_width] for i in range(0, len(chars), new_width))
 
-class ASCIIFrame(wx.Frame):
+    ascii_image = "\n".join(
+        chars[i:i + new_width] for i in range(0, len(chars), new_width)
+    )
+    return ascii_image
+
+
+class MainFrame(wx.Frame):
     def __init__(self):
-        super().__init__(None, title="ASCII Art Generator", size=(900, 700))
-        self.image = None
+        super().__init__(None, title="ASCII Art Generator", size=(950, 750))
+        self.loaded_image = None
 
         panel = wx.Panel(self)
         vbox = wx.BoxSizer(wx.VERTICAL)
 
-        btn = wx.Button(panel, label="Load Image")
-        btn.Bind(wx.EVT_BUTTON, self.load)
-        vbox.Add(btn, 0, wx.ALL | wx.CENTER, 5)
+        
+        hbox_buttons = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.slider = wx.Slider(panel, 120, 40, 200)
-        self.slider.Bind(wx.EVT_SLIDER, self.update)
-        vbox.Add(self.slider, 0, wx.EXPAND | wx.ALL, 10)
+        self.load_btn = wx.Button(panel, label="Load Image")
+        self.load_btn.Bind(wx.EVT_BUTTON, self.on_load_image)
+        hbox_buttons.Add(self.load_btn, 0, wx.ALL, 5)
 
-        self.txt = wx.TextCtrl(panel, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.HSCROLL)
-        self.txt.SetFont(wx.Font(10, wx.FONTFAMILY_TELETYPE, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
-        vbox.Add(self.txt, 1, wx.EXPAND | wx.ALL, 10)
+        self.clear_btn = wx.Button(panel, label="Clear")
+        self.clear_btn.Bind(wx.EVT_BUTTON, self.on_clear)
+        hbox_buttons.Add(self.clear_btn, 0, wx.ALL, 5)
+
+        vbox.Add(hbox_buttons, 0, wx.CENTER)
+
+        
+        self.slider_label = wx.StaticText(panel, label="ASCII Width: 120")
+        vbox.Add(self.slider_label, 0, wx.LEFT | wx.TOP, 10)
+
+        
+        self.width_slider = wx.Slider(
+            panel,
+            value=120,
+            minValue=40,
+            maxValue=200,
+            style=wx.SL_HORIZONTAL
+        )
+        self.width_slider.Bind(wx.EVT_SLIDER, self.on_slider_change)
+        vbox.Add(self.width_slider, 0, wx.EXPAND | wx.ALL, 10)
+
+        
+        self.text_ctrl = wx.TextCtrl(
+            panel,
+            style=wx.TE_MULTILINE | wx.TE_READONLY | wx.HSCROLL | wx.TE_DONTWRAP
+        )
+
+        font = wx.Font(
+            10,
+            wx.FONTFAMILY_TELETYPE,
+            wx.FONTSTYLE_NORMAL,
+            wx.FONTWEIGHT_NORMAL
+        )
+        self.text_ctrl.SetFont(font)
+
+        vbox.Add(self.text_ctrl, 1, wx.EXPAND | wx.ALL, 10)
 
         panel.SetSizer(vbox)
-        self.Show()
 
-    def load(self, e):
-        dlg = wx.FileDialog(self, wildcard="*.png;*.jpg;*.jpeg")
-        if dlg.ShowModal() == wx.ID_OK:
-            self.image = Image.open(dlg.GetPath())
-            self.update(None)
+    def on_load_image(self, event):
+        dialog = wx.FileDialog(
+            self,
+            "Select image",
+            wildcard="Image files (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg"
+        )
 
-    def update(self, e):
-        if self.image:
-            self.txt.SetValue(image_to_ascii(self.image, self.slider.GetValue()))
+        if dialog.ShowModal() == wx.ID_OK:
+            path = dialog.GetPath()
+            ext = path.lower().split(".")[-1]
 
-def run_ascii():
-    app = wx.App(False)
-    ASCIIFrame()
-    app.MainLoop()
+            valid_exts = ["png", "jpg", "jpeg"]
+
+            if ext not in valid_exts:
+                wx.MessageBox(
+                    "Invalid input!\nPlease select a PNG, JPG, or JPEG file.",
+                    "Invalid Input",
+                    wx.ICON_ERROR
+                )
+                return
+
+            try:
+                self.loaded_image = Image.open(path)
+                width = self.width_slider.GetValue()
+                ascii_art = image_to_ascii(self.loaded_image, new_width=width)
+                self.text_ctrl.SetValue(ascii_art)
+
+            except Exception as e:
+                wx.MessageBox(str(e), "Error", wx.ICON_ERROR)
+
+    def on_slider_change(self, event):
+        width = self.width_slider.GetValue()
+        self.slider_label.SetLabel(f"ASCII Width: {width}")
+
+        if self.loaded_image is not None:
+            ascii_art = image_to_ascii(self.loaded_image, new_width=width)
+            self.text_ctrl.SetValue(ascii_art)
+
+    def on_clear(self, event):
+        self.text_ctrl.SetValue("")
+        self.loaded_image = None
+
+
+class MyApp(wx.App):
+    def OnInit(self):
+        frame = MainFrame()
+        frame.Show()
+        return True
+
+
+if __name__ == "__main__":
+    MyApp().MainLoop()
 
 # =====================================================
 # 3. MAGIC SQUARE GENERATOR
@@ -317,5 +395,6 @@ while True:
     else:
         print("Invalid choice")
         
+
 
 
